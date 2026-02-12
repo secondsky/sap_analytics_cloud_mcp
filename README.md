@@ -18,8 +18,10 @@ The server authenticates against an SAC tenant using OAuth 2.0 Client Credential
 | Monitoring | 2 | Audit activity export, model monitoring |
 | Schedule & Publication | 4 | Schedule CRUD |
 | Translation | 4 | Artifact metadata, XLIFF download (single + bulk) |
+| Smart Query | 1 | Intelligent routing (Relational vs Analytical) |
 
-Plus a `ping` connectivity check tool (63 total).
+Plus a `ping` connectivity check tool (63 total), and **Prompt** support for guided workflows.
+
 
 ## Prerequisites
 
@@ -27,7 +29,35 @@ Plus a `ping` connectivity check tool (63 total).
 - **npm**
 - An SAP Analytics Cloud tenant with an OAuth client registered under **System > Administration > App Integration**
 
+
+## Smart Query
+
+The `smart_query` tool simplifies data access by intelligently routing your request:
+
+- **Relational**: Simple `SELECT *` queries are routed to the OData API for raw entity data.
+- **Analytical**: Queries with aggregations (`SUM`, `COUNT`, `GROUP BY`) are analyzed and routed to the Widget Query API (where possible) or appropriate OData aggregation endpoints.
+
+```sql
+-- Relational (OData)
+SELECT * FROM Stories LIMIT 5
+
+-- Analytical (Smart Routing)
+SELECT SUM(Amount) FROM Model123 GROUP BY Region
+```
+
+## Prompts
+
+The server provides pre-defined prompts to guide users through common workflows:
+
+1.  **explore_content**: Discover stories and files in your tenant.
+2.  **analyze_story**: Deep dive into a specific story's metadata and dependencies.
+3.  **system_health_check**: Quick status check of connectivity and recent failures.
+4.  **audit_user_activity**: Review actions performed by a specific user.
+
+Use `list_prompts` to see the full list and `get_prompt` to use them.
+
 ## SAC Tenant Setup
+
 
 1. Open your SAC tenant and go to **System > Administration > App Integration > Add a New OAuth Client**.
 2. Set the purpose to **Interactive Usage and API Access**.
