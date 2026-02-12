@@ -30,8 +30,12 @@ export function registerSchedulePublicationTools(server: McpServer): void {
     "Create a new publication schedule.",
     {
       body: z.record(z.string(), z.unknown()).describe("Schedule definition object"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/ps/schedules", body);
@@ -49,8 +53,12 @@ export function registerSchedulePublicationTools(server: McpServer): void {
     {
       scheduleId: z.string().describe("Schedule ID"),
       body: z.record(z.string(), z.unknown()).describe("Fields to update"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ scheduleId, body }) => {
+    async ({ scheduleId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPatch(cfg, `/api/v1/ps/schedules/${encodeURIComponent(scheduleId)}`, body);
@@ -68,8 +76,12 @@ export function registerSchedulePublicationTools(server: McpServer): void {
     {
       scheduleId: z.string().describe("Schedule ID"),
       body: z.record(z.string(), z.unknown()).optional().describe("Optional deletion parameters"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ scheduleId, body }) => {
+    async ({ scheduleId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         await sacDelete(cfg, `/api/v1/ps/schedules/${encodeURIComponent(scheduleId)}`, body);

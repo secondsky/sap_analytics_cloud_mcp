@@ -37,8 +37,12 @@ export function registerContentTools(server: McpServer): void {
       sourceStoryId: z.string().describe("ID of the story to copy (copyFrom)"),
       copyToFolder: z.string().optional().describe("Target folder name (copyTo)"),
       newName: z.string().optional().describe("Name for the copied story"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ sourceStoryId, copyToFolder, newName }) => {
+    async ({ sourceStoryId, copyToFolder, newName, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         let path = `/api/v1/stories?copyFrom=${encodeURIComponent(sourceStoryId)}`;
@@ -59,8 +63,12 @@ export function registerContentTools(server: McpServer): void {
     {
       storyId: z.string().describe("ID of the story to rename"),
       newName: z.string().describe("New name for the story"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ storyId, newName }) => {
+    async ({ storyId, newName, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPatch(cfg, `/api/v1/stories/${encodeURIComponent(storyId)}`, { name: newName });
@@ -77,8 +85,12 @@ export function registerContentTools(server: McpServer): void {
     "Delete a story by ID.",
     {
       storyId: z.string().describe("ID of the story to delete"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ storyId }) => {
+    async ({ storyId, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         await sacDelete(cfg, `/api/v1/stories/${encodeURIComponent(storyId)}`);

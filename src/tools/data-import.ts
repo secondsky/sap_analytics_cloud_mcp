@@ -68,8 +68,12 @@ export function registerDataImportTools(server: McpServer): void {
       modelId: z.string().describe("Model ID"),
       importType: z.string().optional().describe("Import type segment (e.g. factData, masterData)"),
       body: z.record(z.string(), z.unknown()).optional().describe("Job creation payload"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ modelId, importType, body }) => {
+    async ({ modelId, importType, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         let path = `/api/v1/dataimport/models/${encodeURIComponent(modelId)}`;
@@ -89,8 +93,12 @@ export function registerDataImportTools(server: McpServer): void {
     {
       jobId: z.string().describe("Import job ID"),
       body: z.record(z.string(), z.unknown()).describe("Data payload to upload"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ jobId, body }) => {
+    async ({ jobId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}`, body);
@@ -109,6 +117,8 @@ export function registerDataImportTools(server: McpServer): void {
       jobId: z.string().describe("Import job ID"),
     },
     async ({ jobId }) => {
+      // Validation is read-only/dry-run, so technically safe, but often part of a write chain.
+      // Keeping it open for now unless strict requirements emerge.
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}/validate`);
@@ -125,8 +135,12 @@ export function registerDataImportTools(server: McpServer): void {
     "Execute a validated import job.",
     {
       jobId: z.string().describe("Import job ID"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ jobId }) => {
+    async ({ jobId, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}/run`);
@@ -179,8 +193,12 @@ export function registerDataImportTools(server: McpServer): void {
     "Delete an import job.",
     {
       jobId: z.string().describe("Import job ID"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ jobId }) => {
+    async ({ jobId, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         await sacDelete(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}`);
@@ -199,8 +217,12 @@ export function registerDataImportTools(server: McpServer): void {
       modelId: z.string().describe("Model ID"),
       importType: z.string().optional().describe("Import type segment (e.g. factData, masterData)"),
       body: z.record(z.string(), z.unknown()).describe("Full import payload (mapping + data)"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ modelId, importType, body }) => {
+    async ({ modelId, importType, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         let path = `/api/v1/dataimport/import/${encodeURIComponent(modelId)}`;

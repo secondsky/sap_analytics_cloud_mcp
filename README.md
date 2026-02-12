@@ -217,6 +217,8 @@ src/
 - **Never commit credentials.** Keep `SAC_CLIENT_ID` and `SAC_CLIENT_SECRET` in environment variables or a `.env` file excluded via `.gitignore`.
 - The OAuth client secret grants full API access scoped to the permissions of the technical user. Treat it like a password.
 - The server holds tokens and session cookies in memory. Restarting the process clears all cached authentication state.
+- **Write Operations Security**: All tools that modify data (create, update, delete, copy) require a mandatory `allowalteration` argument set to `true`. This prevents accidental modification of data by the agent.
+
 
 ### Authentication
 

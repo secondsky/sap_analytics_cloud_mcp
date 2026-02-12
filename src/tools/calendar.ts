@@ -33,8 +33,12 @@ export function registerCalendarTools(server: McpServer): void {
     {
       eventId: z.string().describe("Calendar event ID"),
       body: z.record(z.string(), z.unknown()).describe("Fields to update"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ eventId, body }) => {
+    async ({ eventId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPatch(cfg, `/api/v1/calendar/events/${encodeURIComponent(eventId)}`, body);
@@ -51,8 +55,12 @@ export function registerCalendarTools(server: McpServer): void {
     "Copy (create) a calendar event.",
     {
       body: z.record(z.string(), z.unknown()).describe("Event definition object"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/calendar/events", body);

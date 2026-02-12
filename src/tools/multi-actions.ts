@@ -15,8 +15,12 @@ export function registerMultiActionTools(server: McpServer): void {
     {
       multiActionId: z.string().describe("Multi action ID"),
       body: z.record(z.string(), z.unknown()).optional().describe("Execution parameters"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ multiActionId, body }) => {
+    async ({ multiActionId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(

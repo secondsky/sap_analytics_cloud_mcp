@@ -53,8 +53,12 @@ export function registerUserManagementTools(server: McpServer): void {
     "Create a new user (SCIM v2).",
     {
       body: z.record(z.string(), z.unknown()).describe("SCIM User resource object"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/scim2/Users", body);
@@ -72,8 +76,12 @@ export function registerUserManagementTools(server: McpServer): void {
     {
       userId: z.string().describe("User UUID"),
       body: z.record(z.string(), z.unknown()).describe("Complete SCIM User resource object"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ userId, body }) => {
+    async ({ userId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPut(cfg, `/api/v1/scim2/Users/${encodeURIComponent(userId)}`, body);
@@ -91,8 +99,12 @@ export function registerUserManagementTools(server: McpServer): void {
     {
       userId: z.string().describe("User UUID"),
       body: z.record(z.string(), z.unknown()).describe("SCIM PatchOp object with Operations array"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ userId, body }) => {
+    async ({ userId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPatch(cfg, `/api/v1/scim2/Users/${encodeURIComponent(userId)}`, body);
@@ -109,8 +121,12 @@ export function registerUserManagementTools(server: McpServer): void {
     "Delete a user by UUID (SCIM v2).",
     {
       userId: z.string().describe("User UUID"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ userId }) => {
+    async ({ userId, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         await sacDelete(cfg, `/api/v1/scim2/Users/${encodeURIComponent(userId)}`);
@@ -149,8 +165,12 @@ export function registerUserManagementTools(server: McpServer): void {
     {
       body: z.record(z.string(), z.unknown()).describe("SCIM Group resource object"),
       createTeamFolder: z.boolean().optional().describe("Set x-sap-sac-create-team-folder header to create associated folder"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body, createTeamFolder }) => {
+    async ({ body, createTeamFolder, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const extra: Record<string, string> = {};
@@ -172,8 +192,12 @@ export function registerUserManagementTools(server: McpServer): void {
     {
       groupId: z.string().describe("Group UUID"),
       body: z.record(z.string(), z.unknown()).describe("SCIM PatchOp object with Operations array"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ groupId, body }) => {
+    async ({ groupId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPatch(cfg, `/api/v1/scim2/Groups/${encodeURIComponent(groupId)}`, body);
@@ -190,8 +214,12 @@ export function registerUserManagementTools(server: McpServer): void {
     "Execute bulk SCIM operations (create, update, delete multiple users/groups).",
     {
       body: z.record(z.string(), z.unknown()).describe("SCIM Bulk request object with Operations array"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/scim2/Bulk", body);
