@@ -13,6 +13,7 @@ import { registerUserManagementTools } from "./user-management.js";
 import { registerMonitoringTools } from "./monitoring.js";
 import { registerSchedulePublicationTools } from "./schedule-publication.js";
 import { registerTranslationTools } from "./translation.js";
+import { registerSmartQueryTool } from "./smart-query.js";
 
 export function registerTools(server: McpServer): void {
   // ── Connectivity check ──────────────────────────────────────────
@@ -36,4 +37,5 @@ export function registerTools(server: McpServer): void {
   registerMonitoringTools(server);
   registerSchedulePublicationTools(server);
   registerTranslationTools(server);
+  registerSmartQueryTool(server);
 }

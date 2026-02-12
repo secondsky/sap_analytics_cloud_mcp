@@ -23,14 +23,15 @@ export function getConfig(): SacClientConfig {
 // ── MCP response formatters ───────────────────────────────────────
 
 /** Wrap an API result in the MCP success envelope. */
-export function toolSuccess(data: unknown): {
+export function toolSuccess(data: unknown, metadata?: unknown): {
   content: [{ type: "text"; text: string }];
 } {
+  const response = metadata ? { data, metadata } : data;
   return {
     content: [
       {
         type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
+        text: typeof response === "string" ? response : JSON.stringify(response, null, 2),
       },
     ],
   };
