@@ -8,13 +8,12 @@ import { sacGet, sacPost, sacPut, sacDelete } from "../auth/sac-client.js";
 import { getConfig, toolSuccess, toolError } from "./_helpers.js";
 
 export function registerContentTransportTools(server: McpServer): void {
-  // ── POST /api/v1/content/jobs (export) ──────────────────────────
   server.tool(
     "sac_transport_create_export_job",
     "Create a content transport export job.",
     {
-      body: z.record(z.string(), z.unknown()).describe("Export job definition (must include exportType)"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("Export job definition"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, allowalteration }) => {
       if (!allowalteration) {
@@ -30,12 +29,11 @@ export function registerContentTransportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/content/jobs/<id> ───────────────────────────────
   server.tool(
     "sac_transport_get_job_status",
-    "Get the status of a content transport job.",
+    "Get content transport job status.",
     {
-      jobId: z.string().describe("Content transport job ID"),
+      jobId: z.string().describe("Job ID"),
     },
     async ({ jobId }) => {
       try {
@@ -48,13 +46,12 @@ export function registerContentTransportTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/content/jobs (import) ──────────────────────────
   server.tool(
     "sac_transport_create_import_job",
     "Create a content transport import job.",
     {
-      body: z.record(z.string(), z.unknown()).describe("Import job definition (must include importType)"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("Import job definition"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, allowalteration }) => {
       if (!allowalteration) {
@@ -70,13 +67,12 @@ export function registerContentTransportTools(server: McpServer): void {
     },
   );
 
-  // ── DELETE /api/v1/content/<itemId> ─────────────────────────────
   server.tool(
     "sac_transport_delete_content",
-    "Delete a content item by ID.",
+    "Delete a content item.",
     {
       itemId: z.string().describe("Content item ID"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ itemId, allowalteration }) => {
       if (!allowalteration) {
@@ -92,10 +88,9 @@ export function registerContentTransportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/content/<itemId>/<waveItemId> ───────────────────
   server.tool(
     "sac_transport_get_content_item",
-    "Get details of a content item within a wave.",
+    "Get content item details within a wave.",
     {
       itemId: z.string().describe("Content item ID"),
       waveItemId: z.string().describe("Wave item ID"),
@@ -114,7 +109,6 @@ export function registerContentTransportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/content/permissions/<itemId> ────────────────────
   server.tool(
     "sac_transport_get_permissions",
     "Get permissions for a content item.",
@@ -132,15 +126,14 @@ export function registerContentTransportTools(server: McpServer): void {
     },
   );
 
-  // ── PUT /api/v1/content/<itemId>/<targetId> ─────────────────────
   server.tool(
     "sac_transport_move_item",
     "Move a content item to a target location.",
     {
-      itemId: z.string().describe("Content item ID to move"),
+      itemId: z.string().describe("Item ID to move"),
       targetId: z.string().describe("Target location ID"),
-      body: z.record(z.string(), z.unknown()).optional().describe("Additional move parameters"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).optional().describe("Move parameters"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ itemId, targetId, body, allowalteration }) => {
       if (!allowalteration) {

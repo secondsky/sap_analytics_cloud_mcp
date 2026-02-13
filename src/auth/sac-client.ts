@@ -267,8 +267,9 @@ async function writeHeaders(
 export async function sacGet(
   cfg: SacClientConfig,
   path: string,
+  extraHeaders?: Record<string, string>,
 ): Promise<unknown> {
-  const headers = await baseHeaders(cfg);
+  const headers = { ...(await baseHeaders(cfg)), ...extraHeaders };
   const url = `${cfg.baseUrl}${path}`;
 
   const res = await fetch(url, { headers });

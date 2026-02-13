@@ -1,5 +1,5 @@
 /**
- * Schedule & Publication tools — Schedules CRUD + status
+ * Schedule & Publication tools — Schedules CRUD
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -8,10 +8,9 @@ import { sacGet, sacPost, sacPatch, sacDelete } from "../auth/sac-client.js";
 import { getConfig, toolSuccess, toolError } from "./_helpers.js";
 
 export function registerSchedulePublicationTools(server: McpServer): void {
-  // ── GET /api/v1/ps/schedules/template ───────────────────────────
   server.tool(
     "sac_schedule_get_template",
-    "Get the schedule creation template with default values.",
+    "Get schedule creation template with defaults.",
     {},
     async () => {
       try {
@@ -24,13 +23,12 @@ export function registerSchedulePublicationTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/ps/schedules ───────────────────────────────────
   server.tool(
     "sac_schedule_create",
-    "Create a new publication schedule.",
+    "Create a publication schedule.",
     {
-      body: z.record(z.string(), z.unknown()).describe("Schedule definition object"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("Schedule definition"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, allowalteration }) => {
       if (!allowalteration) {
@@ -46,14 +44,13 @@ export function registerSchedulePublicationTools(server: McpServer): void {
     },
   );
 
-  // ── PATCH /api/v1/ps/schedules/<id> ─────────────────────────────
   server.tool(
     "sac_schedule_update",
-    "Update an existing publication schedule (partial update).",
+    "Update a publication schedule (partial).",
     {
       scheduleId: z.string().describe("Schedule ID"),
       body: z.record(z.string(), z.unknown()).describe("Fields to update"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ scheduleId, body, allowalteration }) => {
       if (!allowalteration) {
@@ -69,14 +66,13 @@ export function registerSchedulePublicationTools(server: McpServer): void {
     },
   );
 
-  // ── DELETE /api/v1/ps/schedules/<id> ────────────────────────────
   server.tool(
     "sac_schedule_delete",
-    "Delete a publication schedule. Accepts an optional JSON body.",
+    "Delete a publication schedule.",
     {
       scheduleId: z.string().describe("Schedule ID"),
-      body: z.record(z.string(), z.unknown()).optional().describe("Optional deletion parameters"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).optional().describe("Deletion parameters"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ scheduleId, body, allowalteration }) => {
       if (!allowalteration) {

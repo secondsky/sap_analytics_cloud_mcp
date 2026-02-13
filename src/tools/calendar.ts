@@ -8,12 +8,11 @@ import { sacGet, sacPost, sacPatch } from "../auth/sac-client.js";
 import { getConfig, toolSuccess, toolError } from "./_helpers.js";
 
 export function registerCalendarTools(server: McpServer): void {
-  // ── GET /api/v1/calendar/events/<id> ────────────────────────────
   server.tool(
     "sac_calendar_get_event",
     "Get a calendar event by ID.",
     {
-      eventId: z.string().describe("Calendar event ID"),
+      eventId: z.string().describe("Event ID"),
     },
     async ({ eventId }) => {
       try {
@@ -26,14 +25,13 @@ export function registerCalendarTools(server: McpServer): void {
     },
   );
 
-  // ── PATCH /api/v1/calendar/events/<id> ──────────────────────────
   server.tool(
     "sac_calendar_update_event",
-    "Update a calendar event (partial update).",
+    "Update a calendar event (partial).",
     {
-      eventId: z.string().describe("Calendar event ID"),
+      eventId: z.string().describe("Event ID"),
       body: z.record(z.string(), z.unknown()).describe("Fields to update"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ eventId, body, allowalteration }) => {
       if (!allowalteration) {
@@ -49,13 +47,12 @@ export function registerCalendarTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/calendar/events ────────────────────────────────
   server.tool(
     "sac_calendar_copy_event",
-    "Copy (create) a calendar event.",
+    "Copy/create a calendar event.",
     {
-      body: z.record(z.string(), z.unknown()).describe("Event definition object"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("Event definition"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, allowalteration }) => {
       if (!allowalteration) {

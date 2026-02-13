@@ -1,5 +1,5 @@
 /**
- * Monitoring tools — Audit export and monitoring models
+ * Monitoring tools — Audit export and monitoring
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -8,16 +8,15 @@ import { sacGet } from "../auth/sac-client.js";
 import { getConfig, toolSuccess, toolError, buildODataQuery } from "./_helpers.js";
 
 export function registerMonitoringTools(server: McpServer): void {
-  // ── GET /api/v1/audit/activities/exportActivities ───────────────
   server.tool(
     "sac_audit_export",
-    "Export audit activity logs. Supports OData query parameters for filtering.",
+    "Export audit activity logs with OData query params.",
     {
-      $top: z.number().optional().describe("Max number of results"),
-      $skip: z.number().optional().describe("Number of results to skip"),
-      $filter: z.string().optional().describe("OData filter expression"),
-      $orderby: z.string().optional().describe("OData orderby expression"),
-      $select: z.string().optional().describe("Comma-separated properties to return"),
+      $top: z.number().optional().describe("Max results"),
+      $skip: z.number().optional().describe("Skip N results"),
+      $filter: z.string().optional().describe("OData filter"),
+      $orderby: z.string().optional().describe("Order by"),
+      $select: z.string().optional().describe("Fields to return"),
     },
     async (args) => {
       try {
@@ -31,12 +30,11 @@ export function registerMonitoringTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/monitoring/<modelId> ────────────────────────────
   server.tool(
     "sac_monitoring_get",
-    "Get monitoring data for a specific model.",
+    "Get monitoring data for a model.",
     {
-      modelId: z.string().describe("Model ID to get monitoring data for"),
+      modelId: z.string().describe("Model ID"),
     },
     async ({ modelId }) => {
       try {

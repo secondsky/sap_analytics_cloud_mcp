@@ -8,14 +8,13 @@ import { sacGet, sacPost, sacPut, sacPatch, sacDelete } from "../auth/sac-client
 import { getConfig, toolSuccess, toolError, buildODataQuery } from "./_helpers.js";
 
 export function registerUserManagementTools(server: McpServer): void {
-  // ── GET /api/v1/scim2/Users ─────────────────────────────────────
   server.tool(
     "sac_users_list",
-    "List users (SCIM v2). Supports filter and pagination.",
+    "List users (SCIM v2).",
     {
-      filter: z.string().optional().describe("SCIM filter expression (e.g. userName eq \"admin\")"),
-      startIndex: z.number().optional().describe("1-based start index for pagination"),
-      count: z.number().optional().describe("Max number of users to return"),
+      filter: z.string().optional().describe("SCIM filter"),
+      startIndex: z.number().optional().describe("1-based start index"),
+      count: z.number().optional().describe("Max results"),
     },
     async ({ filter, startIndex, count }) => {
       try {
@@ -29,10 +28,9 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/scim2/Users/<uuid> ──────────────────────────────
   server.tool(
     "sac_users_get",
-    "Get a single user by UUID (SCIM v2).",
+    "Get a user by UUID.",
     {
       userId: z.string().describe("User UUID"),
     },
@@ -47,13 +45,12 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/scim2/Users ────────────────────────────────────
   server.tool(
     "sac_users_create",
-    "Create a new user (SCIM v2).",
+    "Create a user (SCIM v2).",
     {
-      body: z.record(z.string(), z.unknown()).describe("SCIM User resource object"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("SCIM User resource"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, allowalteration }) => {
       if (!allowalteration) {
@@ -69,14 +66,13 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── PUT /api/v1/scim2/Users/<uuid> ──────────────────────────────
   server.tool(
     "sac_users_update",
-    "Full replacement update of a user (SCIM v2 PUT).",
+    "Full replace of a user (SCIM v2 PUT).",
     {
       userId: z.string().describe("User UUID"),
-      body: z.record(z.string(), z.unknown()).describe("Complete SCIM User resource object"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("Complete SCIM User resource"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ userId, body, allowalteration }) => {
       if (!allowalteration) {
@@ -92,14 +88,13 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── PATCH /api/v1/scim2/Users/<uuid> ────────────────────────────
   server.tool(
     "sac_users_patch",
     "Partial update of a user (SCIM v2 PATCH).",
     {
       userId: z.string().describe("User UUID"),
-      body: z.record(z.string(), z.unknown()).describe("SCIM PatchOp object with Operations array"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("SCIM PatchOp with Operations"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ userId, body, allowalteration }) => {
       if (!allowalteration) {
@@ -115,13 +110,12 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── DELETE /api/v1/scim2/Users/<uuid> ───────────────────────────
   server.tool(
     "sac_users_delete",
-    "Delete a user by UUID (SCIM v2).",
+    "Delete a user.",
     {
       userId: z.string().describe("User UUID"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ userId, allowalteration }) => {
       if (!allowalteration) {
@@ -137,14 +131,13 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/scim2/Groups ────────────────────────────────────
   server.tool(
     "sac_teams_list",
-    "List teams/groups (SCIM v2). Supports filter and pagination.",
+    "List teams/groups (SCIM v2).",
     {
-      filter: z.string().optional().describe("SCIM filter expression"),
-      startIndex: z.number().optional().describe("1-based start index for pagination"),
-      count: z.number().optional().describe("Max number of groups to return"),
+      filter: z.string().optional().describe("SCIM filter"),
+      startIndex: z.number().optional().describe("1-based start index"),
+      count: z.number().optional().describe("Max results"),
     },
     async ({ filter, startIndex, count }) => {
       try {
@@ -158,14 +151,13 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/scim2/Groups ──────────────────────────────────
   server.tool(
     "sac_teams_create",
-    "Create a new team/group (SCIM v2). Optionally create a team folder.",
+    "Create a team/group (SCIM v2).",
     {
-      body: z.record(z.string(), z.unknown()).describe("SCIM Group resource object"),
-      createTeamFolder: z.boolean().optional().describe("Set x-sap-sac-create-team-folder header to create associated folder"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("SCIM Group resource"),
+      createTeamFolder: z.boolean().optional().describe("Create associated team folder"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, createTeamFolder, allowalteration }) => {
       if (!allowalteration) {
@@ -185,14 +177,13 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── PATCH /api/v1/scim2/Groups/<uuid> ───────────────────────────
   server.tool(
     "sac_teams_patch",
     "Partial update of a team/group (SCIM v2 PATCH).",
     {
       groupId: z.string().describe("Group UUID"),
-      body: z.record(z.string(), z.unknown()).describe("SCIM PatchOp object with Operations array"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("SCIM PatchOp with Operations"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ groupId, body, allowalteration }) => {
       if (!allowalteration) {
@@ -208,13 +199,12 @@ export function registerUserManagementTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/scim2/Bulk ─────────────────────────────────────
   server.tool(
     "sac_users_bulk",
-    "Execute bulk SCIM operations (create, update, delete multiple users/groups).",
+    "Bulk SCIM operations (create/update/delete multiple users/groups).",
     {
-      body: z.record(z.string(), z.unknown()).describe("SCIM Bulk request object with Operations array"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      body: z.record(z.string(), z.unknown()).describe("SCIM Bulk request with Operations"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ body, allowalteration }) => {
       if (!allowalteration) {

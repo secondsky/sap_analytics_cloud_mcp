@@ -1,5 +1,5 @@
 /**
- * Data Import tools — Models, Jobs lifecycle, One-click import
+ * Data Import tools — Models, Jobs, Public Dimensions, Currency/Unit Conversions
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -7,8 +7,47 @@ import { z } from "zod";
 import { sacGet, sacPost, sacDelete } from "../auth/sac-client.js";
 import { getConfig, toolSuccess, toolError } from "./_helpers.js";
 
+const BASE = "/api/v1/dataimport";
+
+// ── Shared Zod schemas ──────────────────────────────────────────────
+
+const importMethodSchema = z.enum(["Update", "Append", "CleanAndReplace", "DeleteAndUpsert", "DropAndInsert"])
+  .optional()
+  .describe("Import method");
+
+const jobSettingsSchema = z.object({
+  importMethod: importMethodSchema,
+  dimensionScope: z.array(z.string()).optional()
+    .describe("Dimensions for CleanAndReplace scope"),
+  executeWithFailedRows: z.boolean().optional()
+    .describe("Proceed even if invalid rows (default: true)"),
+  ignoreAdditionalColumns: z.boolean().optional()
+    .describe("Ignore extra columns (default: false)"),
+  pivotOptions: z.object({
+    pivotColumnStart: z.number().describe("Starting column index"),
+    pivotKeyName: z.string().describe("Pivoted dimension name"),
+    pivotValueName: z.string().describe("Measure column name"),
+  }).optional().describe("Pivot settings"),
+  dateFormats: z.record(z.string(), z.string()).optional()
+    .describe("Date format per column"),
+  reverseSignByAccountType: z.boolean().optional()
+    .describe("Reverse sign for INC/LEQ accounts"),
+}).optional().describe("Job settings");
+
+const mappingSchema = z.record(z.string(), z.string()).optional()
+  .describe("Column mapping: { source: target }");
+
+const defaultValuesSchema = z.record(z.string(), z.unknown()).optional()
+  .describe("Default values for missing columns");
+
+const importTypeSchema = z.enum(["factData", "masterData", "masterFactData", "privateFactData"])
+  .optional()
+  .describe("Import type");
+
 export function registerDataImportTools(server: McpServer): void {
-  // ── GET /api/v1/dataimport/models ───────────────────────────────
+
+  // ── Models ────────────────────────────────────────────────────────
+
   server.tool(
     "sac_import_list_models",
     "List models available for data import.",
@@ -16,7 +55,7 @@ export function registerDataImportTools(server: McpServer): void {
     async () => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, "/api/v1/dataimport/models");
+        const result = await sacGet(cfg, `${BASE}/models`);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -24,17 +63,16 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/dataimport/models/<id> ──────────────────────────
   server.tool(
     "sac_import_get_model",
-    "Get details of a specific import model.",
+    "Get model import types, versions, settings, and metadata URL.",
     {
       modelId: z.string().describe("Model ID"),
     },
     async ({ modelId }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `/api/v1/dataimport/models/${encodeURIComponent(modelId)}`);
+        const result = await sacGet(cfg, `${BASE}/models/${modelId}`);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -42,17 +80,16 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/dataimport/models/<id>/metadata ─────────────────
   server.tool(
     "sac_import_get_model_metadata",
-    "Get metadata (columns, dimensions, measures) for an import model.",
+    "Get model metadata: columns, types, keys.",
     {
       modelId: z.string().describe("Model ID"),
     },
     async ({ modelId }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `/api/v1/dataimport/models/${encodeURIComponent(modelId)}/metadata`);
+        const result = await sacGet(cfg, `${BASE}/models/${modelId}/metadata`);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -60,25 +97,31 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/dataimport/models/<id>[/<importType>] ──────────
   server.tool(
     "sac_import_create_job",
-    "Create a new data import job for a model. Optionally specify import type (e.g. factData, masterData).",
+    "Create import job for a model. Returns JobID/JobURL.",
     {
       modelId: z.string().describe("Model ID"),
-      importType: z.string().optional().describe("Import type segment (e.g. factData, masterData)"),
-      body: z.record(z.string(), z.unknown()).optional().describe("Job creation payload"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      importType: importTypeSchema,
+      Mapping: mappingSchema,
+      JobSettings: jobSettingsSchema,
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
-    async ({ modelId, importType, body, allowalteration }) => {
+    async ({ modelId, importType, Mapping, JobSettings, allowalteration }) => {
       if (!allowalteration) {
         return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
       }
       try {
         const cfg = getConfig();
-        let path = `/api/v1/dataimport/models/${encodeURIComponent(modelId)}`;
-        if (importType) path += `/${encodeURIComponent(importType)}`;
-        const result = await sacPost(cfg, path, body);
+        const path = importType
+          ? `${BASE}/models/${modelId}/${importType}`
+          : `${BASE}/models/${modelId}`;
+
+        const body: Record<string, unknown> = {};
+        if (Mapping) body.Mapping = Mapping;
+        if (JobSettings) body.JobSettings = JobSettings;
+
+        const result = await sacPost(cfg, path, Object.keys(body).length > 0 ? body : undefined);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -86,22 +129,48 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/dataimport/jobs/<id> ───────────────────────────
+  // ── Jobs ──────────────────────────────────────────────────────────
+
+  server.tool(
+    "sac_import_list_jobs",
+    "List all import jobs.",
+    {},
+    async () => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/jobs`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
   server.tool(
     "sac_import_upload_data",
-    "Upload data to an existing import job.",
+    "Upload data to an import job. Returns upserted/failed row counts.",
     {
-      jobId: z.string().describe("Import job ID"),
-      body: z.record(z.string(), z.unknown()).describe("Data payload to upload"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      jobId: z.string().describe("Job ID"),
+      Data: z.array(z.record(z.string(), z.unknown()))
+        .describe("Data rows to import"),
+      DeletedData: z.array(z.record(z.string(), z.unknown())).optional()
+        .describe("Rows to delete (currency/unit jobs only)"),
+      Mapping: mappingSchema,
+      DefaultValues: defaultValuesSchema,
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
-    async ({ jobId, body, allowalteration }) => {
+    async ({ jobId, Data, DeletedData, Mapping, DefaultValues, allowalteration }) => {
       if (!allowalteration) {
         return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
       }
       try {
         const cfg = getConfig();
-        const result = await sacPost(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}`, body);
+        const body: Record<string, unknown> = { Data };
+        if (DeletedData) body.DeletedData = DeletedData;
+        if (Mapping) body.Mapping = Mapping;
+        if (DefaultValues) body.DefaultValues = DefaultValues;
+
+        const result = await sacPost(cfg, `${BASE}/jobs/${jobId}`, body);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -109,19 +178,16 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/dataimport/jobs/<id>/validate ──────────────────
   server.tool(
     "sac_import_validate_job",
-    "Validate an import job before running it.",
+    "Validate import job before running.",
     {
-      jobId: z.string().describe("Import job ID"),
+      jobId: z.string().describe("Job ID"),
     },
     async ({ jobId }) => {
-      // Validation is read-only/dry-run, so technically safe, but often part of a write chain.
-      // Keeping it open for now unless strict requirements emerge.
       try {
         const cfg = getConfig();
-        const result = await sacPost(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}/validate`);
+        const result = await sacPost(cfg, `${BASE}/jobs/${jobId}/validate`);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -129,21 +195,25 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/dataimport/jobs/<id>/run ───────────────────────
   server.tool(
     "sac_import_run_job",
-    "Execute a validated import job.",
+    "Execute validated import job.",
     {
-      jobId: z.string().describe("Import job ID"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      jobId: z.string().describe("Job ID"),
+      overrideExecuteWithFailedRows: z.boolean().optional()
+        .describe("Force write despite failed rows"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
-    async ({ jobId, allowalteration }) => {
+    async ({ jobId, overrideExecuteWithFailedRows, allowalteration }) => {
       if (!allowalteration) {
         return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
       }
       try {
         const cfg = getConfig();
-        const result = await sacPost(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}/run`);
+        const body = overrideExecuteWithFailedRows
+          ? { overrideExecuteWithFailedRows: true }
+          : undefined;
+        const result = await sacPost(cfg, `${BASE}/jobs/${jobId}/run`, body);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -151,17 +221,16 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/dataimport/jobs/<id>/status ─────────────────────
   server.tool(
     "sac_import_get_job_status",
-    "Get the status of an import job.",
+    "Get job status: READY_FOR_DATA, READY_FOR_WRITE, PROCESSING, COMPLETED, FAILED.",
     {
-      jobId: z.string().describe("Import job ID"),
+      jobId: z.string().describe("Job ID"),
     },
     async ({ jobId }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}/status`);
+        const result = await sacGet(cfg, `${BASE}/jobs/${jobId}/status`);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -169,17 +238,16 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── GET /api/v1/dataimport/jobs/<id>/invalidRows ────────────────
   server.tool(
     "sac_import_get_invalid_rows",
-    "Get invalid rows from an import job (after validation or run).",
+    "Get rejected rows with rejection reasons.",
     {
-      jobId: z.string().describe("Import job ID"),
+      jobId: z.string().describe("Job ID"),
     },
     async ({ jobId }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}/invalidRows`);
+        const result = await sacGet(cfg, `${BASE}/jobs/${jobId}/invalidRows`);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -187,13 +255,12 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── DELETE /api/v1/dataimport/jobs/<id> ─────────────────────────
   server.tool(
     "sac_import_delete_job",
     "Delete an import job.",
     {
-      jobId: z.string().describe("Import job ID"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      jobId: z.string().describe("Job ID"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ jobId, allowalteration }) => {
       if (!allowalteration) {
@@ -201,7 +268,7 @@ export function registerDataImportTools(server: McpServer): void {
       }
       try {
         const cfg = getConfig();
-        await sacDelete(cfg, `/api/v1/dataimport/jobs/${encodeURIComponent(jobId)}`);
+        await sacDelete(cfg, `${BASE}/jobs/${jobId}`);
         return toolSuccess({ deleted: true });
       } catch (err) {
         return toolError(err);
@@ -209,25 +276,290 @@ export function registerDataImportTools(server: McpServer): void {
     },
   );
 
-  // ── POST /api/v1/dataimport/import/<modelId>[/<importType>] ─────
+  // ── One-Click Import ──────────────────────────────────────────────
+
   server.tool(
     "sac_import_oneclick",
-    "One-click import: create, upload, validate, and run in a single request.",
+    "One-click: create job, upload, validate, run in one request.",
     {
       modelId: z.string().describe("Model ID"),
-      importType: z.string().optional().describe("Import type segment (e.g. factData, masterData)"),
-      body: z.record(z.string(), z.unknown()).describe("Full import payload (mapping + data)"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      importType: importTypeSchema,
+      Data: z.array(z.record(z.string(), z.unknown()))
+        .describe("Data rows"),
+      Mapping: mappingSchema,
+      DefaultValues: defaultValuesSchema,
+      JobSettings: jobSettingsSchema,
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
-    async ({ modelId, importType, body, allowalteration }) => {
+    async ({ modelId, importType, Data, Mapping, DefaultValues, JobSettings, allowalteration }) => {
       if (!allowalteration) {
         return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
       }
       try {
         const cfg = getConfig();
-        let path = `/api/v1/dataimport/import/${encodeURIComponent(modelId)}`;
-        if (importType) path += `/${encodeURIComponent(importType)}`;
+        const path = importType
+          ? `${BASE}/import/${modelId}/${importType}`
+          : `${BASE}/import/${modelId}`;
+
+        const body: Record<string, unknown> = { Data };
+        if (Mapping) body.Mapping = Mapping;
+        if (DefaultValues) body.DefaultValues = DefaultValues;
+        if (JobSettings) body.JobSettings = JobSettings;
+
         const result = await sacPost(cfg, path, body);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  // ── Public Dimensions ─────────────────────────────────────────────
+
+  server.tool(
+    "sac_import_list_public_dimensions",
+    "List public dimensions available for import.",
+    {},
+    async () => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/publicDimensions`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_get_public_dimension",
+    "Get public dimension import types and metadata URL.",
+    {
+      publicDimensionId: z.string().describe("Public dimension ID"),
+    },
+    async ({ publicDimensionId }) => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/publicDimensions/${publicDimensionId}`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_get_public_dimension_metadata",
+    "Get public dimension metadata: columns, types, keys.",
+    {
+      publicDimensionId: z.string().describe("Public dimension ID"),
+    },
+    async ({ publicDimensionId }) => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/publicDimensions/${publicDimensionId}/metadata`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_create_public_dimension_job",
+    "Create import job for a public dimension.",
+    {
+      publicDimensionId: z.string().describe("Public dimension ID"),
+      Mapping: mappingSchema,
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
+    },
+    async ({ publicDimensionId, Mapping, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
+      try {
+        const cfg = getConfig();
+        const body: Record<string, unknown> = {};
+        if (Mapping) body.Mapping = Mapping;
+        const result = await sacPost(
+          cfg,
+          `${BASE}/publicDimensions/${publicDimensionId}/publicDimensionData`,
+          Object.keys(body).length > 0 ? body : undefined,
+        );
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  // ── Currency Conversions ──────────────────────────────────────────
+
+  server.tool(
+    "sac_import_list_currency_conversions",
+    "List currency conversion tables for import.",
+    {},
+    async () => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/currencyConversions`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_get_currency_conversion",
+    "Get currency conversion import types and settings.",
+    {
+      currencyConversionId: z.string().describe("Currency conversion ID"),
+    },
+    async ({ currencyConversionId }) => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/currencyConversions/${currencyConversionId}`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_get_currency_conversion_metadata",
+    "Get currency conversion metadata: columns, types, keys.",
+    {
+      currencyConversionId: z.string().describe("Currency conversion ID"),
+    },
+    async ({ currencyConversionId }) => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/currencyConversions/${currencyConversionId}/metadata`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_create_currency_conversion_job",
+    "Create import job for a currency conversion table.",
+    {
+      currencyConversionId: z.string().describe("Currency conversion ID"),
+      importType: z.string().optional().describe("e.g. currencyTable"),
+      Mapping: mappingSchema,
+      JobSettings: z.object({
+        importMethod: z.enum(["DeleteAndUpsert", "DropAndInsert"]).optional()
+          .describe("Import method"),
+      }).optional().describe("Job settings"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
+    },
+    async ({ currencyConversionId, importType, Mapping, JobSettings, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
+      try {
+        const cfg = getConfig();
+        const path = importType
+          ? `${BASE}/currencyConversions/${currencyConversionId}/${importType}`
+          : `${BASE}/currencyConversions/${currencyConversionId}`;
+
+        const body: Record<string, unknown> = {};
+        if (Mapping) body.Mapping = Mapping;
+        if (JobSettings) body.JobSettings = JobSettings;
+
+        const result = await sacPost(cfg, path, Object.keys(body).length > 0 ? body : undefined);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  // ── Unit Conversions ──────────────────────────────────────────────
+
+  server.tool(
+    "sac_import_list_unit_conversions",
+    "List unit conversion tables for import.",
+    {},
+    async () => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/unitConversions`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_get_unit_conversion",
+    "Get unit conversion import types and settings.",
+    {
+      unitConversionId: z.string().describe("Unit conversion ID"),
+    },
+    async ({ unitConversionId }) => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/unitConversions/${unitConversionId}`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_get_unit_conversion_metadata",
+    "Get unit conversion metadata: columns, types, keys.",
+    {
+      unitConversionId: z.string().describe("Unit conversion ID"),
+    },
+    async ({ unitConversionId }) => {
+      try {
+        const cfg = getConfig();
+        const result = await sacGet(cfg, `${BASE}/unitConversions/${unitConversionId}/metadata`);
+        return toolSuccess(result);
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.tool(
+    "sac_import_create_unit_conversion_job",
+    "Create import job for a unit conversion table.",
+    {
+      unitConversionId: z.string().describe("Unit conversion ID"),
+      importType: z.string().optional().describe("e.g. conversionRates, unitDescriptions"),
+      Mapping: mappingSchema,
+      DefaultValues: defaultValuesSchema,
+      JobSettings: z.object({
+        executeWithFailedRows: z.boolean().optional()
+          .describe("Proceed despite invalid rows"),
+      }).optional().describe("Job settings"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
+    },
+    async ({ unitConversionId, importType, Mapping, DefaultValues, JobSettings, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
+      try {
+        const cfg = getConfig();
+        const path = importType
+          ? `${BASE}/unitConversions/${unitConversionId}/${importType}`
+          : `${BASE}/unitConversions/${unitConversionId}`;
+
+        const body: Record<string, unknown> = {};
+        if (Mapping) body.Mapping = Mapping;
+        if (DefaultValues) body.DefaultValues = DefaultValues;
+        if (JobSettings) body.JobSettings = JobSettings;
+
+        const result = await sacPost(cfg, path, Object.keys(body).length > 0 ? body : undefined);
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);

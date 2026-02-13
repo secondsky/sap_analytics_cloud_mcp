@@ -11,13 +11,24 @@ export function registerMultiActionTools(server: McpServer): void {
   // ── POST /api/v1/multiActions/<id>/executions ───────────────────
   server.tool(
     "sac_multi_action_execute",
-    "Execute a multi action by ID.",
+    "Execute a multi action. ID format: <packageId>:<objectId>. Body requires parameterValues array (empty if none).",
     {
-      multiActionId: z.string().describe("Multi action ID"),
-      body: z.record(z.string(), z.unknown()).optional().describe("Execution parameters"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      multiActionId: z.string().describe("ID as packageId:objectId, e.g. t.TEST:CEEFOKMRUKJBY5BN47F1NS2L8G"),
+      parameterValues: z.array(
+        z.object({
+          parameterId: z.string().describe("Parameter ID"),
+          value: z.union([
+            z.number(),
+            z.object({
+              memberIds: z.union([z.array(z.string()), z.array(z.array(z.string()))]),
+              hierarchyId: z.string().nullable().optional(),
+            }),
+          ]),
+        }),
+      ).optional().default([]).describe("Parameters array, empty [] if none required"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
-    async ({ multiActionId, body, allowalteration }) => {
+    async ({ multiActionId, parameterValues, allowalteration }) => {
       if (!allowalteration) {
         return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
       }
@@ -25,8 +36,8 @@ export function registerMultiActionTools(server: McpServer): void {
         const cfg = getConfig();
         const result = await sacPost(
           cfg,
-          `/api/v1/multiActions/${encodeURIComponent(multiActionId)}/executions`,
-          body,
+          `/api/v1/multiActions/${multiActionId}/executions`,
+          { parameterValues },
         );
         return toolSuccess(result);
       } catch (err) {
@@ -38,7 +49,7 @@ export function registerMultiActionTools(server: McpServer): void {
   // ── GET /api/v1/multiActions/<id>/executions/<execId> ───────────
   server.tool(
     "sac_multi_action_get_status",
-    "Get the execution status of a multi action.",
+    "Get execution status of a multi action.",
     {
       multiActionId: z.string().describe("Multi action ID"),
       executionId: z.string().describe("Execution ID"),
@@ -48,7 +59,7 @@ export function registerMultiActionTools(server: McpServer): void {
         const cfg = getConfig();
         const result = await sacGet(
           cfg,
-          `/api/v1/multiActions/${encodeURIComponent(multiActionId)}/executions/${encodeURIComponent(executionId)}`,
+          `/api/v1/multiActions/${multiActionId}/executions/${executionId}`,
         );
         return toolSuccess(result);
       } catch (err) {

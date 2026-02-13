@@ -1,16 +1,16 @@
 # SAP Analytics Cloud MCP Server
 
-An [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server that exposes the SAP Analytics Cloud REST API as 63 tools consumable by any MCP-compatible client (Custom Agent, Claude Desktop, Claude Code, Cursor, Antigravityetc.).
+An [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server that exposes the SAP Analytics Cloud REST API as 90 tools consumable by any MCP-compatible client (Custom Agent, Claude Desktop, Claude Code, Cursor, etc.).
 
 ## What it does
 
-The server authenticates against an SAC tenant using OAuth 2.0 Client Credentials and manages CSRF tokens and session cookies automatically. It then exposes the full SAC REST API surface as discrete MCP tools grouped into 10 service areas:
+The server authenticates against an SAC tenant using OAuth 2.0 Client Credentials and manages CSRF tokens and session cookies automatically. It then exposes the full SAC REST API surface as discrete MCP tools grouped into 11 service areas:
 
 | Module | Tools | Covers |
 |---|---|---|
 | Content | 10 | Stories, Resources, File Repository, Repositories, Widget Query |
-| Data Export | 9 | Namespaces, Providers, Entity Sets, Subscriptions |
-| Data Import | 11 | Models, Import Jobs lifecycle, One-click Import |
+| Data Export | 22 | Namespaces, Providers, Subscriptions, FactData, MasterData, AuditData, Aggregation, Difference, Currency/Unit tables, Public Dimensions |
+| Data Import | 24 | Models, Import Jobs lifecycle (create/upload/validate/run/status), One-click Import, Public Dimensions, Currency Conversions, Unit Conversions |
 | Multi Actions | 2 | Execute and poll status |
 | Calendar | 3 | Get, update, copy calendar events |
 | Content Transport | 7 | Export/import jobs, packages, permissions |
@@ -20,7 +20,7 @@ The server authenticates against an SAC tenant using OAuth 2.0 Client Credential
 | Translation | 4 | Artifact metadata, XLIFF download (single + bulk) |
 | Smart Query | 1 | Intelligent routing (Relational vs Analytical) |
 
-Plus a `ping` connectivity check tool (63 total), and **Prompt** support for guided workflows.
+Plus a `ping` connectivity check tool (90 total), and **Prompt** support for guided workflows.
 
 
 ## Prerequisites

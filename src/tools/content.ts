@@ -11,31 +11,39 @@ export function registerContentTools(server: McpServer): void {
   // ── GET /api/v1/stories ─────────────────────────────────────────
   server.tool(
     "sac_stories_list",
-    "List stories accessible to the authenticated user. Optionally include model metadata.",
+    "List stories. Supports OData $filter, $orderby, $select, $expand, $top, $skip, $inlinecount, $format.",
     {
-      includeModels: z.boolean().optional().describe("Include model metadata (maps to ?include=models)"),
-      $top: z.number().optional().default(20).describe("Max number of stories to return (default: 20)"),
-      $skip: z.number().optional().describe("Number of stories to skip"),
+      includeModels: z.boolean().optional().describe("Include model metadata"),
+      $top: z.number().optional().default(20).describe("Max results (default 20)"),
+      $skip: z.number().optional().describe("Skip N results"),
+      $filter: z.string().optional().describe("OData filter"),
+      $orderby: z.string().optional().describe("e.g. 'name desc'"),
+      $select: z.string().optional().describe("Comma-separated fields"),
+      $expand: z.string().optional().describe("Expand related entities"),
+      $inlinecount: z.enum(["allpages", "none"]).optional().describe("Include total count"),
+      $format: z.enum(["json", "xml"]).optional().describe("Response format"),
     },
-    async ({ includeModels, $top = 20, $skip = 0 }) => {
+    async (args) => {
       try {
         const cfg = getConfig();
+        const top = args.$top ?? 20;
         const params = new URLSearchParams();
 
-        if (includeModels) params.append("include", "models");
-
-        // Try to push pagination to server
-        params.append("limit", $top.toString());
-        params.append("$top", $top.toString());
-        if ($skip) params.append("$skip", $skip.toString());
+        if (args.includeModels) params.append("include", "models");
+        params.append("$top", top.toString());
+        if (args.$skip) params.append("$skip", args.$skip.toString());
+        if (args.$filter) params.append("$filter", args.$filter);
+        if (args.$orderby) params.append("$orderby", args.$orderby);
+        if (args.$select) params.append("$select", args.$select);
+        if (args.$expand) params.append("$expand", args.$expand);
+        if (args.$inlinecount) params.append("$inlinecount", args.$inlinecount);
+        if (args.$format) params.append("$format", args.$format);
 
         const path = `/api/v1/stories?${params.toString()}`;
         const result = await sacGet(cfg, path);
 
-        // Safety: If result is an array, slice it to respect $top
-        // This protects against the case where the API ignores the pagination params
         if (Array.isArray(result)) {
-          return toolSuccess(result.slice(0, $top));
+          return toolSuccess(result.slice(0, top));
         }
 
         return toolSuccess(result);
@@ -48,12 +56,12 @@ export function registerContentTools(server: McpServer): void {
   // ── POST /api/v1/stories?copyFrom=<id> ─────────────────────────
   server.tool(
     "sac_stories_copy",
-    "Copy a story. By default the copy is created in the source folder.",
+    "Copy a story.",
     {
-      sourceStoryId: z.string().describe("ID of the story to copy (copyFrom)"),
-      copyToFolder: z.string().optional().describe("Target folder name (copyTo)"),
-      newName: z.string().optional().describe("Name for the copied story"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      sourceStoryId: z.string().describe("Source story ID"),
+      copyToFolder: z.string().optional().describe("Target folder"),
+      newName: z.string().optional().describe("Name for copy"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ sourceStoryId, copyToFolder, newName, allowalteration }) => {
       if (!allowalteration) {
@@ -77,9 +85,9 @@ export function registerContentTools(server: McpServer): void {
     "sac_stories_rename",
     "Rename a story.",
     {
-      storyId: z.string().describe("ID of the story to rename"),
-      newName: z.string().describe("New name for the story"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      storyId: z.string().describe("Story ID"),
+      newName: z.string().describe("New name"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ storyId, newName, allowalteration }) => {
       if (!allowalteration) {
@@ -98,10 +106,10 @@ export function registerContentTools(server: McpServer): void {
   // ── DELETE /api/v1/stories/<id> ─────────────────────────────────
   server.tool(
     "sac_stories_delete",
-    "Delete a story by ID.",
+    "Delete a story.",
     {
-      storyId: z.string().describe("ID of the story to delete"),
-      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
+      storyId: z.string().describe("Story ID"),
+      allowalteration: z.boolean().optional().describe("Must be true to execute"),
     },
     async ({ storyId, allowalteration }) => {
       if (!allowalteration) {
@@ -120,7 +128,7 @@ export function registerContentTools(server: McpServer): void {
   // ── GET /api/v1/$metadata ───────────────────────────────────────
   server.tool(
     "sac_metadata_get",
-    "Get the OData metadata document for the SAC REST API.",
+    "Get OData metadata document for the SAC REST API.",
     {},
     async () => {
       try {
@@ -136,28 +144,28 @@ export function registerContentTools(server: McpServer): void {
   // ── GET /api/v1/Resources ───────────────────────────────────────
   server.tool(
     "sac_resources_list",
-    "List resources (content objects) with optional OData query parameters.",
+    "List resources (stories/apps). Supports OData $filter, $orderby, $select, $expand, $top, $skip, $inlinecount, $format.",
     {
-      $top: z.number().optional().default(20).describe("Max number of results (default: 20)"),
-      $skip: z.number().optional().describe("Number of results to skip"),
-      $filter: z.string().optional().describe("OData filter expression"),
-      $orderby: z.string().optional().describe("OData orderby expression"),
-      $select: z.string().optional().describe("Comma-separated list of properties to return"),
+      $top: z.number().optional().default(20).describe("Max results (default 20)"),
+      $skip: z.number().optional().describe("Skip N results"),
+      $filter: z.string().optional().describe("OData filter"),
+      $orderby: z.string().optional().describe("e.g. 'name desc'"),
+      $select: z.string().optional().describe("Comma-separated fields"),
+      $expand: z.string().optional().describe("Expand related entities"),
+      $inlinecount: z.enum(["allpages", "none"]).optional().describe("Include total count"),
+      $format: z.enum(["json", "xml"]).optional().describe("Response format"),
     },
     async (args) => {
       try {
         const cfg = getConfig();
         const top = args.$top ?? 20;
-        // Ensure $top is passed to OData
         const queryArgs = { ...args, $top: top };
         const qs = buildODataQuery(queryArgs as Record<string, string | number | boolean | undefined>);
         const result = await sacGet(cfg, `/api/v1/Resources${qs}`);
 
-        // Safety: Manual slicing if array
         if (Array.isArray(result) && result.length > top) {
           return toolSuccess(result.slice(0, top));
         }
-        // OData often returns { value: [...] } wrapper
         if (result && typeof result === 'object' && 'value' in result && Array.isArray((result as any).value)) {
           const val = (result as any).value;
           if (val.length > top) {
@@ -193,13 +201,16 @@ export function registerContentTools(server: McpServer): void {
   // ── GET /api/v1/filerepository/Resources ────────────────────────
   server.tool(
     "sac_filerepository_list",
-    "List file repository resources with optional OData query parameters.",
+    "List file repository resources. Supports OData query params.",
     {
-      $top: z.number().optional().default(20).describe("Max number of results (default: 20)"),
-      $skip: z.number().optional().describe("Number of results to skip"),
-      $filter: z.string().optional().describe("OData filter expression"),
-      $orderby: z.string().optional().describe("OData orderby expression"),
-      $select: z.string().optional().describe("Comma-separated list of properties to return"),
+      $top: z.number().optional().default(20).describe("Max results (default 20)"),
+      $skip: z.number().optional().describe("Skip N results"),
+      $filter: z.string().optional().describe("OData filter"),
+      $orderby: z.string().optional().describe("e.g. 'name desc'"),
+      $select: z.string().optional().describe("Comma-separated fields"),
+      $expand: z.string().optional().describe("Expand related entities"),
+      $inlinecount: z.enum(["allpages", "none"]).optional().describe("Include total count"),
+      $format: z.enum(["json", "xml"]).optional().describe("Response format"),
     },
     async (args) => {
       try {
@@ -209,7 +220,6 @@ export function registerContentTools(server: McpServer): void {
         const qs = buildODataQuery(queryArgs as Record<string, string | number | boolean | undefined>);
         const result = await sacGet(cfg, `/api/v1/filerepository/Resources${qs}`);
 
-        // Safety: Manual slicing if array or OData value
         if (Array.isArray(result) && result.length > top) {
           return toolSuccess(result.slice(0, top));
         }
@@ -229,13 +239,16 @@ export function registerContentTools(server: McpServer): void {
   // ── GET /api/v1/Repositories ────────────────────────────────────
   server.tool(
     "sac_repositories_list",
-    "List repositories with optional OData query parameters.",
+    "List repositories. Supports OData query params.",
     {
-      $top: z.number().optional().default(20).describe("Max number of results (default: 20)"),
-      $skip: z.number().optional().describe("Number of results to skip"),
-      $filter: z.string().optional().describe("OData filter expression"),
-      $orderby: z.string().optional().describe("OData orderby expression"),
-      $select: z.string().optional().describe("Comma-separated list of properties to return"),
+      $top: z.number().optional().default(20).describe("Max results (default 20)"),
+      $skip: z.number().optional().describe("Skip N results"),
+      $filter: z.string().optional().describe("OData filter"),
+      $orderby: z.string().optional().describe("e.g. 'name desc'"),
+      $select: z.string().optional().describe("Comma-separated fields"),
+      $expand: z.string().optional().describe("Expand related entities"),
+      $inlinecount: z.enum(["allpages", "none"]).optional().describe("Include total count"),
+      $format: z.enum(["json", "xml"]).optional().describe("Response format"),
     },
     async (args) => {
       try {
@@ -245,7 +258,6 @@ export function registerContentTools(server: McpServer): void {
         const qs = buildODataQuery(queryArgs as Record<string, string | number | boolean | undefined>);
         const result = await sacGet(cfg, `/api/v1/Repositories${qs}`);
 
-        // Safety: Manual slicing
         if (Array.isArray(result) && result.length > top) {
           return toolSuccess(result.slice(0, top));
         }
@@ -265,11 +277,11 @@ export function registerContentTools(server: McpServer): void {
   // ── GET /api/v1/widgetquery/getWidgetData ───────────────────────
   server.tool(
     "sac_widget_get_data",
-    "Retrieve widget data from a story (e.g. KPI tile data).",
+    "Get widget data from a story.",
     {
       storyId: z.string().describe("Story ID"),
-      widgetId: z.string().describe("Widget ID within the story"),
-      type: z.string().optional().default("kpiTile").describe("Widget type (default: kpiTile)"),
+      widgetId: z.string().describe("Widget ID"),
+      type: z.string().optional().default("kpiTile").describe("Widget type"),
     },
     async ({ storyId, widgetId, type }) => {
       try {
