@@ -14,8 +14,12 @@ export function registerContentTransportTools(server: McpServer): void {
     "Create a content transport export job.",
     {
       body: z.record(z.string(), z.unknown()).describe("Export job definition (must include exportType)"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/content/jobs", body);
@@ -50,8 +54,12 @@ export function registerContentTransportTools(server: McpServer): void {
     "Create a content transport import job.",
     {
       body: z.record(z.string(), z.unknown()).describe("Import job definition (must include importType)"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/content/jobs", body);
@@ -68,8 +76,12 @@ export function registerContentTransportTools(server: McpServer): void {
     "Delete a content item by ID.",
     {
       itemId: z.string().describe("Content item ID"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ itemId }) => {
+    async ({ itemId, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         await sacDelete(cfg, `/api/v1/content/${encodeURIComponent(itemId)}`);
@@ -128,8 +140,12 @@ export function registerContentTransportTools(server: McpServer): void {
       itemId: z.string().describe("Content item ID to move"),
       targetId: z.string().describe("Target location ID"),
       body: z.record(z.string(), z.unknown()).optional().describe("Additional move parameters"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ itemId, targetId, body }) => {
+    async ({ itemId, targetId, body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPut(

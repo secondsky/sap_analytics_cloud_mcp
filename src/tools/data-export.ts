@@ -169,8 +169,12 @@ export function registerDataExportTools(server: McpServer): void {
     "Create a new data export subscription.",
     {
       body: z.record(z.string(), z.unknown()).describe("Subscription definition object"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ body }) => {
+    async ({ body, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         const result = await sacPost(cfg, "/api/v1/dataexport/administration/Subscriptions", body);
@@ -187,8 +191,12 @@ export function registerDataExportTools(server: McpServer): void {
     "Delete a data export subscription.",
     {
       subscriptionId: z.string().describe("Subscription ID"),
+      allowalteration: z.boolean().optional().describe("Security flag: Must be set to true to execute this write operation."),
     },
-    async ({ subscriptionId }) => {
+    async ({ subscriptionId, allowalteration }) => {
+      if (!allowalteration) {
+        return toolError("Security Requirement: This operation changes data. Please confirm by calling again with 'allowalteration=true'.");
+      }
       try {
         const cfg = getConfig();
         await sacDelete(cfg, `/api/v1/dataexport/administration/Subscriptions('${encodeURIComponent(subscriptionId)}')`);

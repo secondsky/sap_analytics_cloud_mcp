@@ -60,11 +60,15 @@ export function buildODataQuery(
   params: Record<string, string | number | boolean | undefined>,
 ): string {
   const entries = Object.entries(params).filter(
-    (e): e is [string, string | number | boolean] => e[1] !== undefined,
+    (e): e is [string, string | number | boolean] =>
+      e[1] !== undefined && e[0] !== "allowalteration",
   );
   if (entries.length === 0) return "";
   const qs = entries
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .map(([k, v]) => {
+      const key = k.startsWith("$") ? k : encodeURIComponent(k);
+      return `${key}=${encodeURIComponent(String(v))}`;
+    })
     .join("&");
   return `?${qs}`;
 }

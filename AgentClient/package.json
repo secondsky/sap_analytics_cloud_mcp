@@ -1,0 +1,20 @@
+{
+  "name": "sac-agent-client",
+  "version": "0.1.0",
+  "description": "Standalone micro-agent for SAP Analytics Cloud via MCP",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/main.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "openai": "^4.80.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
