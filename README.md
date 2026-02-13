@@ -50,7 +50,7 @@ npm run build
 
 ## Quick Start: Agent Client
 
-The easiest way to test the server is using the included **Agent Client**. It connects to the server and uses an LLM (SAP AI Core, Anthropic, OpenAI, etc.) to interact with your SAC tenant.
+The easiest way to test the server locally (after doing mcp setup above) is using the included **Agent Client**. It connects to the server and uses an LLM (SAP AI Core, Anthropic, OpenAI, etc.) to interact with your SAC tenant.
 
 ### 1. Setup Configuration
 Navigate to the client directory and run the setup script:
