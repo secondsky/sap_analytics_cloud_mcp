@@ -160,10 +160,17 @@ export class SAPAICoreProvider implements LlmProvider {
     async continueTurn(results: ToolCallResult[]): Promise<LlmResponse> {
         // Append tool outputs to history
         for (const res of results) {
+            let content = res.isError ? `Error: ${res.content}` : res.content;
+
+            // Safety: Truncate massive outputs to prevent context overflow
+            if (content.length > 20000) {
+                content = content.slice(0, 20000) + "\n... (truncated output)";
+            }
+
             this.history.push({
                 role: "tool",
                 tool_call_id: res.id,
-                content: res.isError ? `Error: ${res.content}` : res.content,
+                content,
             } as any);
         }
 

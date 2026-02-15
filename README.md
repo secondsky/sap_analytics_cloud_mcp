@@ -140,6 +140,5 @@ npm run dev
 
 ### Security Notes
 
-- **Never commit credentials.** Keep `SAC_CLIENT_ID` and `SAC_CLIENT_SECRET` in environment variables or ignored config files.
 - **Write Operations**: All tools that modify data require `allowalteration=true` argument.
 

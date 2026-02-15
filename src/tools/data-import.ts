@@ -51,11 +51,22 @@ export function registerDataImportTools(server: McpServer): void {
   server.tool(
     "sac_import_list_models",
     "List models available for data import.",
-    {},
-    async () => {
+    {
+      top: z.number().optional().describe("Max number of results"),
+    },
+    async ({ top }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `${BASE}/models`);
+        // Try OData $top, but also slice manually if API ignores it
+        const url = top ? `${BASE}/models?$top=${top}` : `${BASE}/models`;
+        let result = await sacGet(cfg, url);
+
+        if (top && Array.isArray(result)) {
+          result = result.slice(0, top);
+        } else if (top && result && typeof result === 'object' && 'models' in result && Array.isArray((result as any).models)) {
+          (result as any).models = (result as any).models.slice(0, top);
+        }
+
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -134,11 +145,21 @@ export function registerDataImportTools(server: McpServer): void {
   server.tool(
     "sac_import_list_jobs",
     "List all import jobs.",
-    {},
-    async () => {
+    {
+      top: z.number().optional().describe("Max number of results"),
+    },
+    async ({ top }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `${BASE}/jobs`);
+        const url = top ? `${BASE}/jobs?$top=${top}` : `${BASE}/jobs`;
+        let result = await sacGet(cfg, url);
+
+        if (top && Array.isArray(result)) {
+          result = result.slice(0, top);
+        } else if (top && result && typeof result === 'object' && 'jobs' in result && Array.isArray((result as any).jobs)) {
+          (result as any).jobs = (result as any).jobs.slice(0, top);
+        }
+
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -319,11 +340,21 @@ export function registerDataImportTools(server: McpServer): void {
   server.tool(
     "sac_import_list_public_dimensions",
     "List public dimensions available for import.",
-    {},
-    async () => {
+    {
+      top: z.number().optional().describe("Max number of results"),
+    },
+    async ({ top }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `${BASE}/publicDimensions`);
+        const url = top ? `${BASE}/publicDimensions?$top=${top}` : `${BASE}/publicDimensions`;
+        let result = await sacGet(cfg, url);
+
+        if (top && Array.isArray(result)) {
+          result = result.slice(0, top);
+        } else if (top && result && typeof result === 'object' && 'publicDimensions' in result && Array.isArray((result as any).publicDimensions)) {
+          (result as any).publicDimensions = (result as any).publicDimensions.slice(0, top);
+        }
+
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -398,11 +429,21 @@ export function registerDataImportTools(server: McpServer): void {
   server.tool(
     "sac_import_list_currency_conversions",
     "List currency conversion tables for import.",
-    {},
-    async () => {
+    {
+      top: z.number().optional().describe("Max number of results"),
+    },
+    async ({ top }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `${BASE}/currencyConversions`);
+        const url = top ? `${BASE}/currencyConversions?$top=${top}` : `${BASE}/currencyConversions`;
+        let result = await sacGet(cfg, url);
+
+        if (top && Array.isArray(result)) {
+          result = result.slice(0, top);
+        } else if (top && result && typeof result === 'object' && 'currencyConversions' in result && Array.isArray((result as any).currencyConversions)) {
+          (result as any).currencyConversions = (result as any).currencyConversions.slice(0, top);
+        }
+
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
@@ -484,11 +525,21 @@ export function registerDataImportTools(server: McpServer): void {
   server.tool(
     "sac_import_list_unit_conversions",
     "List unit conversion tables for import.",
-    {},
-    async () => {
+    {
+      top: z.number().optional().describe("Max number of results"),
+    },
+    async ({ top }) => {
       try {
         const cfg = getConfig();
-        const result = await sacGet(cfg, `${BASE}/unitConversions`);
+        const url = top ? `${BASE}/unitConversions?$top=${top}` : `${BASE}/unitConversions`;
+        let result = await sacGet(cfg, url);
+
+        if (top && Array.isArray(result)) {
+          result = result.slice(0, top);
+        } else if (top && result && typeof result === 'object' && 'unitConversions' in result && Array.isArray((result as any).unitConversions)) {
+          (result as any).unitConversions = (result as any).unitConversions.slice(0, top);
+        }
+
         return toolSuccess(result);
       } catch (err) {
         return toolError(err);
