@@ -180,14 +180,22 @@ TO FILTER STORIES BY USER OR TYPE use sac_filerepository_list instead, which sup
   // ── GET /api/v1/filerepository/Resources ────────────────────────
   server.tool(
     "sac_filerepository_list",
-    `List file repository resources via GET /api/v1/filerepository/Resources.
-This is the CORRECT tool for filtering stories/apps by user, type, or date. OData $filter, $top, $orderby, $select, $count all work.
+    `List story types, enumerate content types, and filter file repository resources via GET /api/v1/filerepository/Resources.
+Use to list all story types (standard story, story template, analytic application), enumerate design experiences (Classic vs Optimized), or filter stories/apps by user, date, or type. OData $filter, $top, $orderby, $select, $count all work.
 IMPORTANT — visibility scope:
   By default (applyManagePrivilege=false), only content the service account has Read access to is returned (typically a small subset of tenant content).
   Set applyManagePrivilege=true to get ALL tenant content (all users' private folders, public folders, workspaces) — requires the service account to have the "Manage" permission for Private Files and Public Files.
   Always use applyManagePrivilege=true when the user wants to search/list across the whole tenant.
 Response fields: resourceId, objectId, name, description, resourceType, resourceSubtype, createdTime, createdBy, modifiedTime, modifiedBy, folderType, workspaceId, workspaceName, openURL, isMobile, isFeatured.
 Filterable fields: resourceType (values: STORY, APPLICATION, DATAACTION, PLANNINGSEQUENCE, MULTIACCOUNT, DIMENSION, ANALYTIC_MODEL), createdBy (exact username/ID), modifiedBy, createdTime, modifiedTime, name, folderType (PUBLIC, PRIVATE, SYSTEM, INPUT_SCHEDULE).
+STORY TYPES — resourceSubtype and objectId encoding:
+  resourceSubtype="" (empty)  → standard story (covers both Classic and Optimized design experience)
+  resourceSubtype="TEMPLATE"  → story template
+  resourceSubtype="APPLICATION" → Analytic Application (scripted, code-based)
+  Design experience is NOT in resourceSubtype — it is encoded in the objectId prefix:
+    objectId prefix "t.D:" → Classic design experience (legacy)
+    objectId prefix "t.B:" → Optimized design experience (recommended, newer)
+  To list story types: $select=name,resourceSubtype,objectId and $orderby=resourceSubtype asc — groups stories by subtype and lets you read the objectId prefix for design experience.
 Filter examples:
   $filter=resourceType eq 'STORY' — all stories
   $filter=resourceType eq 'STORY' and createdBy eq 'USERNAME' — stories by a specific user

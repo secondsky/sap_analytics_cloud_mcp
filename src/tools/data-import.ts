@@ -50,7 +50,7 @@ export function registerDataImportTools(server: McpServer): void {
 
   server.tool(
     "sac_import_list_models",
-    "List models available for data import.",
+    "List models available for data import. Does NOT support name filtering — returns all models. To find a model ID by name, use sac_filerepository_list with $filter=name eq 'MODEL_NAME' and resourceType eq 'ANALYTIC_MODEL' — the returned resourceId is the model ID.",
     {
       top: z.number().optional().describe("Max number of results"),
     },
