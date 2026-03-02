@@ -302,7 +302,7 @@ export function registerDataExportTools(server: McpServer): void {
 
   server.tool(
     "sac_export_get_fact_data_aggregation",
-    "Get aggregated fact data. Use $select for dims/measures; rest aggregated. 'provider' is the model ID — if you only have a model name, resolve it first with sac_filerepository_list using $filter=name eq 'MODEL_NAME' and resourceType eq 'ANALYTIC_MODEL' (returns resourceId = model ID). Namespace for analytic models is 'sac'.",
+    "Get aggregated fact data grouped by dimensions and measures. PREREQUISITE: call sac_import_get_model_metadata first to discover valid dimension and measure names for $select. Use $select for dims/measures. 'provider' is the model ID — resolve name→ID via sac_filerepository_list ($filter=name eq 'MODEL_NAME' and resourceType eq 'ANALYTIC_MODEL'). Namespace for analytic models is 'sac'.",
     {
       namespace: z.string().describe("Namespace ID"),
       provider: z.string().describe("Provider ID (= model ID / resourceId)"),

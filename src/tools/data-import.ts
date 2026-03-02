@@ -93,7 +93,7 @@ export function registerDataImportTools(server: McpServer): void {
 
   server.tool(
     "sac_import_get_model_metadata",
-    "Get model metadata: columns, types, keys.",
+    "Get model dimension names, measure names and field types. Call this BEFORE sac_export_get_fact_data_aggregation to discover valid $select fields (e.g. PD_O_BusinessUnit, SignedData). Required whenever field names are unknown. Use when: aggregating fact data, exporting by dimension, querying model structure.",
     {
       modelId: z.string().describe("Model ID"),
     },
